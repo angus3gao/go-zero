@@ -27,6 +27,7 @@ type (
 		Target        string          `json:",optional"`
 		App           string          `json:",optional"`
 		Token         string          `json:",optional"`
+		Balancer      string          `json:",default=p2c_ewma"`
 		NonBlock      bool            `json:",optional"`
 		Timeout       int64           `json:",default=2000"`
 		KeepaliveTime time.Duration   `json:",optional"`
