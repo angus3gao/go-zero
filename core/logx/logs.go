@@ -100,7 +100,7 @@ func Debugf(format string, v ...any) {
 		if fields == nil {
 			writeDebug(fmt.Sprintf(format, args...))
 		} else {
-			Debugw(fmt.Sprintf(format, args...), fields.GetFields()...)
+			writeDebug(fmt.Sprintf(format, args...), fields.GetFields()...)
 		}
 	}
 }
@@ -152,7 +152,7 @@ func Errorf(format string, v ...any) {
 		if fields == nil {
 			writeError(fmt.Errorf(format, args...).Error())
 		} else {
-			Errorw(fmt.Errorf(format, args...).Error(), fields.GetFields()...)
+			writeError(fmt.Errorf(format, args...).Error(), fields.GetFields()...)
 		}
 	}
 }
@@ -247,7 +247,7 @@ func Infof(format string, v ...any) {
 		if fields == nil {
 			writeInfo(fmt.Sprintf(format, args...))
 		} else {
-			Infow(fmt.Sprintf(format, args...), fields.GetFields()...)
+			writeInfo(fmt.Sprintf(format, args...), fields.GetFields()...)
 		}
 	}
 }
@@ -386,7 +386,7 @@ func Slowf(format string, v ...any) {
 		if fields == nil {
 			writeSlow(fmt.Sprintf(format, args...))
 		} else {
-			Sloww(fmt.Sprintf(format, args...), fields.GetFields()...)
+			writeSlow(fmt.Sprintf(format, args...), fields.GetFields()...)
 		}
 	}
 }
