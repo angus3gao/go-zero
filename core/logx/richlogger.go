@@ -48,7 +48,7 @@ func (l *richLogger) Debug(v ...any) {
 
 func (l *richLogger) Debugf(format string, v ...any) {
 	if shallLog(DebugLevel) {
-		args, fields := ParseFields(v)
+		args, fields := ParseFields(v...)
 		if fields == nil {
 			l.debug(fmt.Sprintf(format, args...))
 		} else {
@@ -83,7 +83,7 @@ func (l *richLogger) Error(v ...any) {
 
 func (l *richLogger) Errorf(format string, v ...any) {
 	if shallLog(ErrorLevel) {
-		args, fields := ParseFields(v)
+		args, fields := ParseFields(v...)
 		if fields == nil {
 			l.err(fmt.Sprintf(format, args...))
 		} else {
@@ -118,7 +118,7 @@ func (l *richLogger) Info(v ...any) {
 
 func (l *richLogger) Infof(format string, v ...any) {
 	if shallLog(InfoLevel) {
-		args, fields := ParseFields(v)
+		args, fields := ParseFields(v...)
 		if fields == nil {
 			l.info(fmt.Sprintf(format, args...))
 		} else {
@@ -153,7 +153,7 @@ func (l *richLogger) Slow(v ...any) {
 
 func (l *richLogger) Slowf(format string, v ...any) {
 	if shallLog(ErrorLevel) {
-		args, fields := ParseFields(v)
+		args, fields := ParseFields(v...)
 		if fields == nil {
 			l.slow(fmt.Sprintf(format, args...))
 		} else {
