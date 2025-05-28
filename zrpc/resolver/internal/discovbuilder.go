@@ -26,11 +26,11 @@ func (b *discovBuilder) Build(target resolver.Target, cc resolver.ClientConn, _ 
 		addrs := make([]resolver.Address, 0, len(vals))
 		for _, val := range vals {
 			publishInfo, err := discov.DecodePublishInfo(val)
-			logx.Infof("discovBuilder.Build serverName: %s, Addr: %s", publishInfo.ServerName, publishInfo.Addr)
 			if err != nil {
 				logx.Errorf("DecodePublishInfo.Value: %s, err: %v", val, err)
 				break
 			}
+			logx.Infof("discovBuilder.Build serverName: %s, Addr: %s", publishInfo.ServerName, publishInfo.Addr)
 			addrs = append(addrs, resolver.Address{
 				Addr:       publishInfo.Addr,
 				ServerName: publishInfo.ServerName,
