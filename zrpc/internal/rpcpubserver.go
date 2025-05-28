@@ -16,8 +16,17 @@ const (
 // NewRpcPubServer returns a Server.
 func NewRpcPubServer(etcd discov.EtcdConf, listenOn string,
 	opts ...ServerOption) (Server, error) {
+	pubListenOn := figureOutListenOn(listenOn)
+	pubInfo, err := discov.EncodePublishInfo(&discov.PublishInfo{
+		Addr:       pubListenOn,
+		ServerName: etcd.ServerName,
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
 	registerEtcd := func() error {
-		pubListenOn := figureOutListenOn(listenOn)
 		var pubOpts []discov.PubOption
 		if etcd.HasAccount() {
 			pubOpts = append(pubOpts, discov.WithPubEtcdAccount(etcd.User, etcd.Pass))
@@ -29,7 +38,7 @@ func NewRpcPubServer(etcd discov.EtcdConf, listenOn string,
 		if etcd.HasID() {
 			pubOpts = append(pubOpts, discov.WithId(etcd.ID))
 		}
-		pubClient := discov.NewPublisher(etcd.Hosts, etcd.Key, pubListenOn, pubOpts...)
+		pubClient := discov.NewPublisher(etcd.Hosts, etcd.Key, pubInfo, pubOpts...)
 		return pubClient.KeepAlive()
 	}
 	server := keepAliveServer{

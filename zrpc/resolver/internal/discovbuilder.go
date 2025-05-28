@@ -25,8 +25,15 @@ func (b *discovBuilder) Build(target resolver.Target, cc resolver.ClientConn, _ 
 		vals := subset(sub.Values(), subsetSize)
 		addrs := make([]resolver.Address, 0, len(vals))
 		for _, val := range vals {
+			publishInfo, err := discov.DecodePublishInfo(val)
+			logx.Infof("discovBuilder.Build serverName: %s, Addr: %s", publishInfo.ServerName, publishInfo.Addr)
+			if err != nil {
+				logx.Errorf("DecodePublishInfo.Value: %s, err: %v", val, err)
+				break
+			}
 			addrs = append(addrs, resolver.Address{
-				Addr: val,
+				Addr:       publishInfo.Addr,
+				ServerName: publishInfo.ServerName,
 			})
 		}
 		if err := cc.UpdateState(resolver.State{

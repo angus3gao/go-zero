@@ -1,6 +1,7 @@
 package discov
 
 import (
+	"encoding/json"
 	"time"
 
 	"github.com/zeromicro/go-zero/core/discov/internal"
@@ -16,6 +17,11 @@ import (
 type (
 	// PubOption defines the method to customize a Publisher.
 	PubOption func(client *Publisher)
+
+	PublishInfo struct {
+		Addr       string
+		ServerName string
+	}
 
 	// A Publisher can be used to publish the value to an etcd cluster on the given key.
 	Publisher struct {
@@ -178,6 +184,34 @@ func (p *Publisher) revoke(cli internal.EtcdClient) {
 	if _, err := cli.Revoke(cli.Ctx(), p.lease); err != nil {
 		logc.Errorf(cli.Ctx(), "etcd publisher revoke: %s", err.Error())
 	}
+}
+
+func EncodePublishInfo(info *PublishInfo) (string, error) {
+	buf, err := json.Marshal(info)
+	if err != nil {
+		return "", err
+	}
+
+	// data, err := base64.NewEncrypt().Encrypt(buf)
+	// if err != nil {
+	// 	return "", err
+	// }
+
+	return string(buf), nil
+}
+
+func DecodePublishInfo(data string) (*PublishInfo, error) {
+	// buf, err := base64.NewEncrypt().Decrypt([]byte(data))
+	// if err != nil {
+	// 	return nil, err
+	// }
+
+	info := &PublishInfo{}
+	if err := json.Unmarshal([]byte(data), info); err != nil {
+		return nil, err
+	}
+
+	return info, nil
 }
 
 // WithId customizes a Publisher with the id.
