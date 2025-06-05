@@ -8,6 +8,7 @@ import (
 
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/core/timex"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 const mongoAddrSep = ","
@@ -20,8 +21,12 @@ func FormatAddr(hosts []string) string {
 func logDuration(ctx context.Context, name, method string, startTime time.Duration, err error) {
 	duration := timex.Since(startTime)
 	logger := logx.WithContext(ctx).WithDuration(duration)
-	if err != nil {
-		logger.Errorf("mongo(%s) - %s - fail(%s)", name, method, err.Error())
+	if err != nil && err != mongo.ErrNoDocuments {
+		if err == mongo.ErrNoDocuments {
+			logger.Infof("mongo(%s) - %s - ok - %s", name, method, err.Error())
+		} else {
+			logger.Errorf("mongo(%s) - %s - fail(%s)", name, method, err.Error())
+		}
 		return
 	}
 
@@ -52,7 +57,11 @@ func logDurationWithDocs(ctx context.Context, name, method string, startTime tim
 	}
 
 	if err != nil {
-		logger.Errorf("mongo(%s) - %s - fail(%s) - %s", name, method, err.Error(), string(content))
+		if err == mongo.ErrNoDocuments {
+			logger.Infof("mongo(%s) - %s - ok - %s", name, method, err.Error())
+		} else {
+			logger.Errorf("mongo(%s) - %s - fail(%s) - %s", name, method, err.Error(), string(content))
+		}
 	} else if logSlowMon.True() && duration > slowThreshold.Load() {
 		logger.Slowf("[MONGO] mongo(%s) - slowcall - %s - ok - %s", name, method, string(content))
 	} else if logMon.True() {
