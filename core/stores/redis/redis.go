@@ -216,7 +216,7 @@ func (s *Redis) BitOpAndCtx(ctx context.Context, destKey string, keys ...string)
 		return 0, err
 	}
 
-	return conn.BitOpAnd(ctx, destKey, s.keysPrefix(keys)...).Result()
+	return conn.BitOpAnd(ctx, s.keyPrefix(destKey), s.keysPrefix(keys)...).Result()
 }
 
 // BitOpNot is redis bit operation (not) command implementation.
@@ -231,7 +231,7 @@ func (s *Redis) BitOpNotCtx(ctx context.Context, destKey, key string) (int64, er
 		return 0, err
 	}
 
-	return conn.BitOpNot(ctx, destKey, s.keyPrefix(key)).Result()
+	return conn.BitOpNot(ctx, s.keyPrefix(destKey), s.keyPrefix(key)).Result()
 }
 
 // BitOpOr is redis bit operation (or) command implementation.
@@ -246,7 +246,7 @@ func (s *Redis) BitOpOrCtx(ctx context.Context, destKey string, keys ...string) 
 		return 0, err
 	}
 
-	return conn.BitOpOr(ctx, destKey, s.keysPrefix(keys)...).Result()
+	return conn.BitOpOr(ctx, s.keyPrefix(destKey), s.keysPrefix(keys)...).Result()
 }
 
 // BitOpXor is redis bit operation (xor) command implementation.
@@ -261,7 +261,7 @@ func (s *Redis) BitOpXorCtx(ctx context.Context, destKey string, keys ...string)
 		return 0, err
 	}
 
-	return conn.BitOpXor(ctx, destKey, s.keysPrefix(keys)...).Result()
+	return conn.BitOpXor(ctx, s.keyPrefix(destKey), s.keysPrefix(keys)...).Result()
 }
 
 // BitPos is redis bitpos command implementation.
