@@ -33,6 +33,7 @@ var (
 	// ErrNilNode is an error that indicates a nil redis node.
 	ErrNilNode    = errors.New("nil redis node")
 	slowThreshold = syncx.ForAtomicDuration(defaultSlowThreshold)
+	ErrModified   = errors.New("key has modified")
 )
 
 type (
@@ -184,6 +185,37 @@ func (r *Redis) keysPrefix(keys []string) []string {
 	}
 
 	return fKeys
+}
+
+func (s *Redis) GetOrSet(ctx context.Context, key string, value interface{}) *CmdResult {
+	return s.runScriptCtx(ctx, getOrSetScript, []string{key}, value)
+}
+
+func (r *Redis) CompareAndSwap(ctx context.Context, key string, old, value interface{}) error {
+	ret, err := r.runScriptCtx(ctx, compareAndSwapscript, []string{key}, old, value).Int()
+	if err != nil {
+		return err
+	}
+	if ret == 0 {
+		logx.Errorf("CompareAndSwap err: %s %s %s", key, old, value)
+		return ErrModified
+	}
+	return nil
+}
+
+func (r *Redis) CompareAndDel(ctx context.Context, key string, old interface{}) error {
+	ret, err := r.runScriptCtx(ctx, compareAndDelscript, []string{key}, old).Int()
+	if err != nil {
+		return err
+	}
+	if ret == 0 {
+		return ErrModified
+	}
+	return nil
+}
+
+func (r *Redis) ZCompareHigher(ctx context.Context, key string, score, member interface{}) (int, error) {
+	return r.runScriptCtx(ctx, zCompareHigherScript, []string{key}, score, member).Int()
 }
 
 // BitCount is redis bitcount command implementation.
@@ -1406,12 +1438,18 @@ func (s *Redis) ScriptRun(script *Script, keys []string, args ...any) (any, erro
 // ScriptRunCtx is the implementation of *redis.Script run command.
 func (s *Redis) ScriptRunCtx(ctx context.Context, script *Script, keys []string,
 	args ...any) (any, error) {
+	return s.runScriptCtx(ctx, script, keys, args...).Result()
+}
+
+func (s *Redis) runScriptCtx(ctx context.Context, script *Script, keys []string,
+	args ...any) *CmdResult {
 	conn, err := getRedis(s)
 	if err != nil {
-		return nil, err
+		return cmdResult(nil, err)
 	}
 
-	return script.Run(ctx, conn, s.keysPrefix(keys), args...).Result()
+	cmd := script.Run(ctx, conn, s.keysPrefix(keys), args...)
+	return cmdResult(cmd, cmd.Err())
 }
 
 // Set is the implementation of redis set command.
