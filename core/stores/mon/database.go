@@ -13,10 +13,12 @@ import (
 
 type (
 	Database struct {
-		name     string
-		database *mongo.Database
-		brk      breaker.Breaker
-		opts     []Option
+		name string
+
+		database    *mongo.Database
+		brk         breaker.Breaker
+		opts        []Option
+		collections map[string]Collection
 	}
 )
 
@@ -40,15 +42,25 @@ func NewDatabase(uri, db string, opts ...Option) (*Database, error) {
 func newDatabase(name string, database *mongo.Database, brk breaker.Breaker,
 	opts ...Option) *Database {
 	return &Database{
-		name:     name,
-		database: database,
-		brk:      brk,
-		opts:     opts,
+		name:        name,
+		database:    database,
+		brk:         brk,
+		opts:        opts,
+		collections: map[string]Collection{},
 	}
 }
 
-func (db *Database) Collection(cllection string) Collection {
-	return newCollection(db.database.Collection(cllection), db.brk)
+func (db *Database) Close() error {
+	return db.database.Client().Disconnect(context.Background())
+}
+
+func (db *Database) Collection(collection string) Collection {
+	if db.collections[collection] != nil {
+		return db.collections[collection]
+	}
+	coll := newCollection(db.database.Collection(collection), db.brk)
+	db.collections[collection] = coll
+	return coll
 }
 
 func (db *Database) CreateIndex(ctx context.Context, collection string, unique bool, fields ...string) error {
