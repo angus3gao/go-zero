@@ -37,6 +37,24 @@ func Do(ctx context.Context, method, url string, data any) (*http.Response, erro
 	return DoRequest(req)
 }
 
+func Post(ctx context.Context, url string, headers map[string]any, data any) (*http.Response, error) {
+	req, err := buildPost(ctx, url, headers, data)
+	if err != nil {
+		return nil, err
+	}
+
+	return DoRequest(req)
+}
+
+func Get(ctx context.Context, url string, headers map[string]any, forms map[string]any) (*http.Response, error) {
+	req, err := buildGet(ctx, url, headers, forms)
+	if err != nil {
+		return nil, err
+	}
+
+	return DoRequest(req)
+}
+
 // DoRequest sends an HTTP request and returns an HTTP response.
 func DoRequest(r *http.Request) (*http.Response, error) {
 	return request(r, defaultClient{})
@@ -61,6 +79,51 @@ func buildFormQuery(u *nurl.URL, val map[string]any) string {
 	}
 
 	return query.Encode()
+}
+
+func buildPost(ctx context.Context, url string, headers map[string]any, body any) (*http.Request, error) {
+	u, err := nurl.Parse(url)
+	if err != nil {
+		return nil, err
+	}
+
+	var buf bytes.Buffer
+	enc := json.NewEncoder(&buf)
+	if err := enc.Encode(body); err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, u.String(), &buf)
+	if err != nil {
+		return nil, err
+	}
+
+	fillHeader(req, headers)
+	if req.Header.Get(header.ContentType) == "" {
+		req.Header.Set(header.ContentType, header.JsonContentType)
+	}
+
+	return req, nil
+}
+
+func buildGet(ctx context.Context, url string, headers map[string]any, forms map[string]any) (*http.Request, error) {
+	u, err := nurl.Parse(url)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	req.URL.RawQuery = buildFormQuery(u, forms)
+	fillHeader(req, headers)
+	if req.Header.Get(header.ContentType) == "" {
+		req.Header.Set(header.ContentType, header.JsonContentType)
+	}
+
+	return req, nil
 }
 
 func buildRequest(ctx context.Context, method, url string, data any) (*http.Request, error) {
