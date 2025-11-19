@@ -144,7 +144,7 @@ func logBrief(r *http.Request, code int, timer *utils.ElapsedTimer, logs *intern
 	}
 
 	if ok {
-		logger.Info(buf.String())
+		logger.Debug(buf.String())
 	} else {
 		logger.Error(buf.String())
 	}
@@ -174,7 +174,7 @@ func logDetails(r *http.Request, response *detailLoggedResponseWriter, timer *ut
 	}
 
 	if isOkResponse(code) {
-		logger.Info(buf.String())
+		logger.Debug(buf.String())
 	} else {
 		logger.Error(buf.String())
 	}
