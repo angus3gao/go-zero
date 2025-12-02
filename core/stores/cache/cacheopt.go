@@ -3,7 +3,7 @@ package cache
 import "time"
 
 const (
-	defaultExpiry         = time.Hour * 24 * 7
+	defaultExpiry         = time.Hour * 24
 	defaultNotFoundExpiry = time.Minute
 )
 
