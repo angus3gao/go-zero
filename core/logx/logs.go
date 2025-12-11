@@ -606,7 +606,7 @@ func writeInfo(val any, fields ...LogField) {
 }
 
 func writeBi(val any) {
-	getWriter().Info(val)
+	getWriter().Bi(val)
 }
 
 // writeSevere writes v into severe log.
