@@ -39,6 +39,7 @@ type (
 		Stack(v any)
 		// Stat logs a message at stat level.
 		Stat(v any, fields ...LogField)
+		Bi(v any)
 	}
 
 	atomicWriter struct {
@@ -134,6 +135,12 @@ func (c comboWriter) Error(v any, fields ...LogField) {
 func (c comboWriter) Info(v any, fields ...LogField) {
 	for _, w := range c.writers {
 		w.Info(v, fields...)
+	}
+}
+
+func (c comboWriter) Bi(v any) {
+	for _, w := range c.writers {
+		w.Bi(v)
 	}
 }
 
@@ -281,6 +288,10 @@ func (w *concreteWriter) Info(v any, fields ...LogField) {
 	output(w.infoLog, levelInfo, v, fields...)
 }
 
+func (w *concreteWriter) Bi(v any) {
+	writeJson(w.infoLog, v)
+}
+
 func (w *concreteWriter) Severe(v any) {
 	output(w.severeLog, levelFatal, v)
 }
@@ -313,6 +324,9 @@ func (n nopWriter) Error(_ any, _ ...LogField) {
 }
 
 func (n nopWriter) Info(_ any, _ ...LogField) {
+}
+
+func (n nopWriter) Bi(_ any) {
 }
 
 func (n nopWriter) Severe(_ any) {
