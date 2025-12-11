@@ -240,6 +240,12 @@ func Info(v ...any) {
 	}
 }
 
+func Bi(v any) {
+	if shallLog(InfoLevel) {
+		writeBi(v)
+	}
+}
+
 // Infof writes v with format into access log.
 func Infof(format string, v ...any) {
 	if shallLog(InfoLevel) {
