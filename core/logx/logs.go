@@ -599,6 +599,10 @@ func writeInfo(val any, fields ...LogField) {
 	getWriter().Info(val, mergeGlobalFields(addCaller(fields...))...)
 }
 
+func writeBi(val any) {
+	getWriter().Info(val)
+}
+
 // writeSevere writes v into severe log.
 // Not checking shallLog here is for performance consideration.
 // If we check shallLog here, the fmt.Sprint might be called even if the log level is not enabled.
