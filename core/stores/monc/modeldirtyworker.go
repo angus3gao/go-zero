@@ -65,7 +65,7 @@ func (mdw ModelDirtyWorker) persist(ctx context.Context, key string) error {
 	}
 
 	subKeys := strings.Split(key, ":")
-	name := subKeys[1]
+	name := subKeys[2]
 	modelPoolPackage, ok := mdw.modelPoolPackages[name]
 	if !ok {
 		return fmt.Errorf("model[%s] not found", name)
@@ -76,7 +76,7 @@ func (mdw ModelDirtyWorker) persist(ctx context.Context, key string) error {
 		return fmt.Errorf("model[%s] value json.Unmarshal error: %v", name, err)
 	}
 
-	_, err = mdw.mongo.Collection(name).UpdateOne(ctx, bson.M{subKeys[2]: subKeys[3]}, bson.M{"$set": model})
+	_, err = mdw.mongo.Collection(name).UpdateOne(ctx, bson.M{subKeys[3]: subKeys[4]}, bson.M{"$set": model})
 	modelPoolPackage.Put(model)
 	return err
 }
