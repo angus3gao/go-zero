@@ -641,20 +641,24 @@ func (s *Redis) Get(key string) (string, error) {
 	return s.GetCtx(context.Background(), key)
 }
 
-// GetCtx is the implementation of redis get command.
-func (s *Redis) GetCtx(ctx context.Context, key string) (string, error) {
+func (s *Redis) GetNokeyPrefixCtx(ctx context.Context, key string) (string, error) {
 	conn, err := getRedis(s)
 	if err != nil {
 		return "", err
 	}
 
-	if val, err := conn.Get(ctx, s.keyPrefix(key)).Result(); errors.Is(err, red.Nil) {
+	if val, err := conn.Get(ctx, key).Result(); errors.Is(err, red.Nil) {
 		return "", nil
 	} else if err != nil {
 		return "", err
 	} else {
 		return val, nil
 	}
+}
+
+// GetCtx is the implementation of redis get command.
+func (s *Redis) GetCtx(ctx context.Context, key string) (string, error) {
+	return s.GetNokeyPrefixCtx(ctx, s.keyPrefix(key))
 }
 
 // GetBit is the implementation of redis getbit command.
@@ -1135,19 +1139,22 @@ func (s *Redis) Mget(keys ...string) ([]string, error) {
 	return s.MgetCtx(context.Background(), keys...)
 }
 
-// MgetCtx is the implementation of redis mget command.
-func (s *Redis) MgetCtx(ctx context.Context, keys ...string) ([]string, error) {
+func (s *Redis) MgetNoKeysPrefixCtx(ctx context.Context, keys ...string) ([]string, error) {
 	conn, err := getRedis(s)
 	if err != nil {
 		return nil, err
 	}
 
-	v, err := conn.MGet(ctx, s.keysPrefix(keys)...).Result()
+	v, err := conn.MGet(ctx, keys...).Result()
 	if err != nil {
 		return nil, err
 	}
 
 	return toStrings(v), nil
+}
+
+func (s *Redis) MgetCtx(ctx context.Context, keys ...string) ([]string, error) {
+	return s.MgetNoKeysPrefixCtx(ctx, s.keysPrefix(keys)...)
 }
 
 // Mset is the implementation of redis mset command.

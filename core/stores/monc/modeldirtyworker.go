@@ -4,9 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"strings"
+	"time"
 
+	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/core/stores/mon"
 	"github.com/zeromicro/go-zero/core/stores/redis"
 	"go.mongodb.org/mongo-driver/bson"
@@ -39,31 +40,44 @@ func (mdw ModelDirtyWorker) AddModel(name string, modelFun ModelPoolPackage) {
 }
 
 func (mdw ModelDirtyWorker) DirtyWorker(ctx context.Context) {
+	num := 0
 	for {
-		keys, err := mdw.redis.LrangeCtx(ctx, "dirty:queue", 0, 10)
+		keys, err := mdw.redis.RpopCountCtx(ctx, "dirty:queue", 100)
+		if err == redis.Nil {
+			logx.Infof("DirtyWorker rem.num: %d", num)
+			num = 0
+			time.Sleep(10 * time.Second)
+			continue
+		}
 		if err != nil {
-			log.Println("LrangeCtx error:", err)
+			logx.Errorf("LrangeCtx error: %+v", err)
 			continue
 		}
 
-		for _, key := range keys {
-			if err := mdw.persist(ctx, key); err != nil {
-				log.Println("persist failed:", err)
+		values, err := mdw.redis.MgetNoKeysPrefixCtx(ctx, keys...)
+		if err != nil {
+			logx.Errorf("MgetCtx error: %+v", err)
+			continue
+		}
+		for idx, key := range keys {
+			if err := mdw.persist(ctx, key, values[idx]); err != nil {
+				logx.Errorf("persist failed: %+v", err)
+				time.Sleep(30 * time.Second)
 				continue
 			}
+		}
 
-			// 落地成功后移除脏标记
-			mdw.redis.SremCtx(ctx, "dirty:set", key)
+		// 落地成功后移除脏标记
+		rnum, err := mdw.redis.SremCtx(ctx, "dirty:set", keys)
+		num += rnum
+		if err != nil {
+			logx.Errorf("redis.SremCtx error: %+v", err)
+			time.Sleep(30 * time.Second)
 		}
 	}
 }
 
-func (mdw ModelDirtyWorker) persist(ctx context.Context, key string) error {
-	valStr, err := mdw.redis.GetCtx(ctx, key)
-	if err != nil {
-		return err
-	}
-
+func (mdw ModelDirtyWorker) persist(ctx context.Context, key, valStr string) error {
 	subKeys := strings.Split(key, ":")
 	name := subKeys[2]
 	modelPoolPackage, ok := mdw.modelPoolPackages[name]
@@ -71,7 +85,8 @@ func (mdw ModelDirtyWorker) persist(ctx context.Context, key string) error {
 		return fmt.Errorf("model[%s] not found", name)
 	}
 	model := modelPoolPackage.Get()
-	err = json.Unmarshal([]byte(valStr), model)
+	err := json.Unmarshal([]byte(valStr), model)
+
 	if err != nil {
 		return fmt.Errorf("model[%s] value json.Unmarshal error: %v", name, err)
 	}
