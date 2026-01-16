@@ -20,4 +20,12 @@ var (
 	//go:embed zcomparehigherscript.lua
 	zCompareHigherLuaScript string
 	zCompareHigherScript    = NewScript(zCompareHigherLuaScript)
+
+	//go:embed markdirtyluascript.lua
+	markdirtyluascript string
+	markdirtyscript    = NewScript(markdirtyluascript)
+
+	//go:embed setandmarkdirtyluascript.lua
+	setandmarkdirtyluascript string
+	setandmarkdirtyscript    = NewScript(setandmarkdirtyluascript)
 )

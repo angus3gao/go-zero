@@ -134,6 +134,15 @@ func (c cacheNode) SetWithExpireCtx(ctx context.Context, key string, val any,
 	return c.rds.SetexCtx(ctx, key, string(data), int(math.Ceil(expire.Seconds())))
 }
 
+func (c cacheNode) SetWithDirtyCtx(ctx context.Context, key string, val any) error {
+	data, err := jsonx.Marshal(val)
+	if err != nil {
+		return err
+	}
+
+	return c.rds.SetAndMarkDirty(ctx, key, string(data), int(math.Ceil(c.aroundDuration(c.expiry).Seconds())))
+}
+
 // String returns a string that represents the cacheNode.
 func (c cacheNode) String() string {
 	return c.rds.Addr

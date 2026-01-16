@@ -214,6 +214,22 @@ func (r *Redis) CompareAndDel(ctx context.Context, key string, old interface{}) 
 	return nil
 }
 
+func (r *Redis) MarkDirty(ctx context.Context, key string) error {
+	_, err := r.runScriptCtx(ctx, markdirtyscript, []string{r.keyPrefix("dirty:set"), r.keyPrefix("dirty:queue")}, r.keyPrefix(key)).Result()
+	if err != nil {
+		return err
+	}
+	return err
+}
+
+func (r *Redis) SetAndMarkDirty(ctx context.Context, key string, value string, seconds int) error {
+	_, err := r.runScriptCtx(ctx, setandmarkdirtyscript, []string{r.keyPrefix("dirty:set"), r.keyPrefix("dirty:queue")}, r.keyPrefix(key), value, seconds).Result()
+	if err != nil {
+		return err
+	}
+	return err
+}
+
 func (r *Redis) ZCompareHigher(ctx context.Context, key string, score, member interface{}) (int, error) {
 	return r.runScriptCtx(ctx, zCompareHigherScript, []string{key}, score, member).Int()
 }
