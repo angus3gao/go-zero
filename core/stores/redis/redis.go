@@ -215,7 +215,7 @@ func (r *Redis) CompareAndDel(ctx context.Context, key string, old interface{}) 
 }
 
 func (r *Redis) MarkDirty(ctx context.Context, key string) error {
-	_, err := r.runScriptCtx(ctx, markdirtyscript, []string{r.keyPrefix("dirty:set"), r.keyPrefix("dirty:queue")}, r.keyPrefix(key)).Result()
+	_, err := r.runScriptCtx(ctx, markdirtyscript, []string{"dirty:set", "dirty:queue"}, r.keyPrefix(key)).Result()
 	if err != nil {
 		return err
 	}
@@ -223,7 +223,7 @@ func (r *Redis) MarkDirty(ctx context.Context, key string) error {
 }
 
 func (r *Redis) SetAndMarkDirty(ctx context.Context, key string, value string, seconds int) error {
-	_, err := r.runScriptCtx(ctx, setandmarkdirtyscript, []string{r.keyPrefix("dirty:set"), r.keyPrefix("dirty:queue")}, r.keyPrefix(key), value, seconds).Result()
+	_, err := r.runScriptCtx(ctx, setandmarkdirtyscript, []string{"dirty:set", "dirty:queue"}, r.keyPrefix(key), value, seconds).Result()
 	if err != nil {
 		return err
 	}
