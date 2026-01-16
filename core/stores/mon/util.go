@@ -33,7 +33,7 @@ func logDuration(ctx context.Context, name, method string, startTime time.Durati
 	if logSlowMon.True() && duration > slowThreshold.Load() {
 		logger.Slowf("[MONGO] mongo(%s) - slowcall - %s - ok", name, method)
 	} else if logMon.True() {
-		logger.Infof("mongo(%s) - %s - ok", name, method)
+		logger.Debugf("mongo(%s) - %s - ok", name, method)
 	}
 }
 

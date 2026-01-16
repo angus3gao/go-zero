@@ -11,12 +11,20 @@ import (
 	"github.com/zeromicro/go-zero/core/stores/mon"
 	"github.com/zeromicro/go-zero/core/stores/redis"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type (
 	ModelPoolPackage interface {
 		Get() any
 		Put(any)
+	}
+
+	ModelDirtyWorkerConf struct {
+		ErrorWait int `json:",default=10"`  // 错误等待时间
+		NilWait   int `json:",default=30"`  // 空等待时间
+		OneNum    int `json:",default=100"` // 单次处理数量
 	}
 )
 
@@ -25,13 +33,26 @@ type ModelDirtyWorker struct {
 	redis *redis.Redis
 
 	modelPoolPackages map[string]ModelPoolPackage
+	conf              ModelDirtyWorkerConf
 }
 
-func MustNewModelDirtyWorker(mongo *mon.Database, redis *redis.Redis) *ModelDirtyWorker {
+func MustNewModelDirtyWorker(mongo *mon.Database, redis *redis.Redis, conf ModelDirtyWorkerConf) *ModelDirtyWorker {
+	if conf.ErrorWait <= 0 {
+		conf.ErrorWait = 10
+	}
+	if conf.NilWait <= 0 {
+		conf.NilWait = 30
+	}
+
+	if conf.OneNum <= 0 {
+		conf.OneNum = 100
+	}
+
 	return &ModelDirtyWorker{
 		mongo:             mongo,
 		redis:             redis,
 		modelPoolPackages: map[string]ModelPoolPackage{},
+		conf:              conf,
 	}
 }
 
@@ -41,29 +62,56 @@ func (mdw ModelDirtyWorker) AddModel(name string, modelFun ModelPoolPackage) {
 
 func (mdw ModelDirtyWorker) DirtyWorker(ctx context.Context) {
 	num := 0
+	start := time.Now().Second()
 	for {
-		keys, err := mdw.redis.RpopCountCtx(ctx, "dirty:queue", 100)
+		keys, err := mdw.redis.RpopCountCtx(ctx, "dirty:queue", mdw.conf.OneNum)
 		if err == redis.Nil {
-			logx.Infof("DirtyWorker rem.num: %d", num)
+			if num > 0 {
+				logx.Infof("DirtyWorker rem.num: %d", num)
+			}
+
 			num = 0
-			time.Sleep(10 * time.Second)
+			less := mdw.conf.NilWait - (time.Now().Second() - start)
+			time.Sleep(time.Duration(less) * time.Second)
+			start = time.Now().Second()
 			continue
 		}
+
 		if err != nil {
 			logx.Errorf("LrangeCtx error: %+v", err)
+			time.Sleep(time.Duration(mdw.conf.ErrorWait) * time.Second)
 			continue
 		}
 
 		values, err := mdw.redis.MgetNoKeysPrefixCtx(ctx, keys...)
 		if err != nil {
 			logx.Errorf("MgetCtx error: %+v", err)
+			mdw.redis.LpushCtx(ctx, "dirty:queue", keys)
+			time.Sleep(time.Duration(mdw.conf.ErrorWait) * time.Second)
 			continue
 		}
+		updateMap := map[string][]mongo.WriteModel{}
 		for idx, key := range keys {
-			if err := mdw.persist(ctx, key, values[idx]); err != nil {
-				logx.Errorf("persist failed: %+v", err)
-				time.Sleep(30 * time.Second)
+			name, update, err := mdw.persist(key, values[idx])
+			if err != nil {
+				logx.Errorf("persist value: %s failed: %+v", err, values[idx])
 				continue
+			}
+			if updateList, ok := updateMap[name]; ok {
+				updateMap[name] = append(updateList, update)
+			} else {
+				updateList = []mongo.WriteModel{}
+				updateMap[name] = append(updateList, update)
+			}
+		}
+
+		for name, updates := range updateMap {
+			opts := options.BulkWrite().SetOrdered(false)
+			_, err := mdw.mongo.Collection(name).BulkWrite(ctx, updates, opts)
+			if err != nil {
+				logx.Errorf("redis.SremCtx error: %+v", err)
+				mdw.redis.LpushCtx(ctx, "dirty:queue", keys)
+				time.Sleep(time.Duration(mdw.conf.ErrorWait) * time.Second)
 			}
 		}
 
@@ -77,21 +125,21 @@ func (mdw ModelDirtyWorker) DirtyWorker(ctx context.Context) {
 	}
 }
 
-func (mdw ModelDirtyWorker) persist(ctx context.Context, key, valStr string) error {
+func (mdw ModelDirtyWorker) persist(key, valStr string) (string, *mongo.UpdateOneModel, error) {
 	subKeys := strings.Split(key, ":")
 	name := subKeys[2]
 	modelPoolPackage, ok := mdw.modelPoolPackages[name]
 	if !ok {
-		return fmt.Errorf("model[%s] not found", name)
+		return "", nil, fmt.Errorf("model[%s] not found", name)
 	}
 	model := modelPoolPackage.Get()
 	err := json.Unmarshal([]byte(valStr), model)
 
 	if err != nil {
-		return fmt.Errorf("model[%s] value json.Unmarshal error: %v", name, err)
+		return "", nil, fmt.Errorf("model[%s] value json.Unmarshal error: %v", name, err)
 	}
 
-	_, err = mdw.mongo.Collection(name).UpdateOne(ctx, bson.M{subKeys[3]: subKeys[4]}, bson.M{"$set": model})
-	modelPoolPackage.Put(model)
-	return err
+	return name, mongo.NewUpdateOneModel().
+		SetFilter(bson.M{subKeys[3]: subKeys[4]}).
+		SetUpdate(bson.M{"$set": model}), nil
 }

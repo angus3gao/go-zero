@@ -2,7 +2,7 @@
 -- KEYS[2] = dirty:queue
 -- ARGV[1] = key
 if redis.call("SADD", KEYS[1], ARGV[1]) == 1 then
-	redis.call("EXPIRE", KEYS[1], 86400)
+	redis.call("EXPIRE", KEYS[1], 300)
     redis.call("LPUSH", KEYS[2], ARGV[1])
 end
 return 1
