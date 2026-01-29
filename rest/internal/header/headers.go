@@ -7,4 +7,5 @@ const (
 	ContentType = "Content-Type"
 	// JsonContentType is the content type for JSON.
 	JsonContentType = "application/json; charset=utf-8"
+	PbContentType   = "application/pb; charset=utf-8"
 )

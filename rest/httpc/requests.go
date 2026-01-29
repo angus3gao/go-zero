@@ -10,6 +10,7 @@ import (
 	nurl "net/url"
 	"strings"
 
+	"github.com/gogo/protobuf/proto"
 	"github.com/zeromicro/go-zero/core/lang"
 	"github.com/zeromicro/go-zero/core/mapping"
 	"github.com/zeromicro/go-zero/core/trace"
@@ -39,6 +40,15 @@ func Do(ctx context.Context, method, url string, data any) (*http.Response, erro
 
 func Post(ctx context.Context, url string, headers map[string]any, data any) (*http.Response, error) {
 	req, err := buildPost(ctx, url, headers, data)
+	if err != nil {
+		return nil, err
+	}
+
+	return DoRequest(req)
+}
+
+func PostPb(ctx context.Context, url string, headers map[string]any, data proto.Message) (*http.Response, error) {
+	req, err := buildProtoRequest(ctx, http.MethodPost, url, headers, data)
 	if err != nil {
 		return nil, err
 	}
@@ -121,6 +131,42 @@ func buildGet(ctx context.Context, url string, headers map[string]any, forms map
 	fillHeader(req, headers)
 	if req.Header.Get(header.ContentType) == "" {
 		req.Header.Set(header.ContentType, header.JsonContentType)
+	}
+
+	return req, nil
+}
+
+func buildProtoRequest(ctx context.Context, method, url string, headers map[string]any, data proto.Message) (*http.Request, error) {
+
+	u, err := nurl.Parse(url)
+	if err != nil {
+		return nil, err
+	}
+
+	var reader io.Reader
+
+	if data != nil {
+		if method == http.MethodGet {
+			return nil, ErrGetWithBody
+		}
+
+		// proto -> binary
+		bs, err := proto.Marshal(data)
+		if err != nil {
+			return nil, err
+		}
+
+		reader = bytes.NewReader(bs)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, method, u.String(), reader)
+	if err != nil {
+		return nil, err
+	}
+
+	fillHeader(req, headers)
+	if data != nil {
+		req.Header.Set(header.ContentType, "application/pb")
 	}
 
 	return req, nil
