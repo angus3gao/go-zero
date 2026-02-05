@@ -133,7 +133,7 @@ func (ng *engine) buildChainWithNativeMiddlewares(fr featuredRoutes, route Route
 			handler.WithTraceIgnorePaths(ng.conf.TraceIgnorePaths)))
 	}
 	if ng.conf.Middlewares.Log {
-		chn = chn.Append(ng.getLogHandler())
+		chn = chn.Prepend(ng.getLogHandler())
 	}
 	if ng.conf.Middlewares.Prometheus {
 		chn = chn.Append(handler.PrometheusHandler(route.Path, route.Method))

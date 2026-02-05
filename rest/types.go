@@ -7,13 +7,15 @@ import (
 
 type (
 	// Middleware defines the middleware method.
-	Middleware func(next http.HandlerFunc) http.HandlerFunc
+	Middleware            func(next http.HandlerFunc) http.HandlerFunc
+	PermissionsMiddleware func(next http.HandlerFunc, permissions []string) http.HandlerFunc
 
 	// A Route is a http route.
 	Route struct {
-		Method  string
-		Path    string
-		Handler http.HandlerFunc
+		Method      string
+		Path        string
+		Handler     http.HandlerFunc
+		Permissions []string
 	}
 
 	// RouteOption defines the method to customize a featured route.

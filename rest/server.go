@@ -224,6 +224,22 @@ func WithMiddleware(middleware Middleware, rs ...Route) []Route {
 	return routes
 }
 
+// WithPermissionsMiddleware adds given permissions middleware to given route.
+func WithPermissionsMiddleware(permissionsMiddleware PermissionsMiddleware, rs ...Route) []Route {
+	routes := make([]Route, len(rs))
+
+	for i := range rs {
+		route := rs[i]
+		routes[i] = Route{
+			Method:  route.Method,
+			Path:    route.Path,
+			Handler: permissionsMiddleware(route.Handler, route.Permissions),
+		}
+	}
+
+	return routes
+}
+
 // WithNotFoundHandler returns a RunOption with not found handler set to given handler.
 func WithNotFoundHandler(handler http.Handler) RunOption {
 	return func(server *Server) {
