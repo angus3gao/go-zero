@@ -83,6 +83,10 @@ func (mc *mockedNode) SetWithExpireCtx(ctx context.Context, key string, val any,
 	return mc.Set(key, val)
 }
 
+func (mc *mockedNode) SetWithDirtyCtx(ctx context.Context, key string, val any) error {
+	return mc.Set(key, val)
+}
+
 func (mc *mockedNode) Take(val any, key string, query func(val any) error) error {
 	return mc.TakeCtx(context.Background(), val, key, query)
 }

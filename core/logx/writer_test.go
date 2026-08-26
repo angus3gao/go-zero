@@ -465,6 +465,10 @@ func (w *tracedWriter) Info(v any, fields ...LogField) {
 	w.Called(v, fields)
 }
 
+func (w *tracedWriter) Bi(v any) {
+	w.Called(v)
+}
+
 func (w *tracedWriter) Severe(v any) {
 	w.Called(v)
 }

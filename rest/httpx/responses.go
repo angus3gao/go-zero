@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"sync"
 
+	ggProto "github.com/gogo/protobuf/proto"
 	"github.com/zeromicro/go-zero/core/jsonx"
 	"github.com/zeromicro/go-zero/core/logc"
 	"github.com/zeromicro/go-zero/core/logx"
@@ -16,10 +17,12 @@ import (
 )
 
 var (
-	errorHandler func(context.Context, error) (int, any)
-	errorLock    sync.RWMutex
-	okHandler    func(context.Context, any) any
-	okLock       sync.RWMutex
+	errorHandler   func(context.Context, error) (int, any)
+	errorPbHandler func(context.Context, error) (int, ggProto.Message)
+	errorLock      sync.RWMutex
+	okHandler      func(context.Context, any) any
+	okPbHandler    func(context.Context, ggProto.Message) ggProto.Message
+	okLock         sync.RWMutex
 )
 
 // Error writes err into w.
@@ -63,6 +66,16 @@ func OkJsonCtx(ctx context.Context, w http.ResponseWriter, v any) {
 	WriteJsonCtx(ctx, w, http.StatusOK, v)
 }
 
+func OkPbCtx(ctx context.Context, w http.ResponseWriter, v ggProto.Message) {
+	okLock.RLock()
+	handlerCtx := okPbHandler
+	okLock.RUnlock()
+	if handlerCtx != nil {
+		v = handlerCtx(ctx, v)
+	}
+	WritePbCtx(ctx, w, http.StatusOK, v)
+}
+
 // SetErrorHandler sets the error handler, which is called on calling Error.
 // Notice: SetErrorHandler and SetErrorHandlerCtx set the same error handler.
 // Keeping both SetErrorHandler and SetErrorHandlerCtx is for backward compatibility.
@@ -83,11 +96,23 @@ func SetErrorHandlerCtx(handlerCtx func(context.Context, error) (int, any)) {
 	errorHandler = handlerCtx
 }
 
+func SetErrorPbHandlerCtx(handlerCtx func(context.Context, error) (int, ggProto.Message)) {
+	errorLock.Lock()
+	defer errorLock.Unlock()
+	errorPbHandler = handlerCtx
+}
+
 // SetOkHandler sets the response handler, which is called on calling OkJson and OkJsonCtx.
 func SetOkHandler(handler func(context.Context, any) any) {
 	okLock.Lock()
 	defer okLock.Unlock()
 	okHandler = handler
+}
+
+func SetOkPbHandler(handler func(context.Context, ggProto.Message) ggProto.Message) {
+	okLock.Lock()
+	defer okLock.Unlock()
+	okPbHandler = handler
 }
 
 // Stream writes data into w with streaming mode.
@@ -120,6 +145,12 @@ func WriteJson(w http.ResponseWriter, code int, v any) {
 // WriteJsonCtx writes v as json string into w with code.
 func WriteJsonCtx(ctx context.Context, w http.ResponseWriter, code int, v any) {
 	if err := doWriteJson(w, code, v); err != nil {
+		logc.Error(ctx, err)
+	}
+}
+
+func WritePbCtx(ctx context.Context, w http.ResponseWriter, code int, v ggProto.Message) {
+	if err := doWritePb(w, code, v); err != nil {
 		logc.Error(ctx, err)
 	}
 }
@@ -185,6 +216,27 @@ func doWriteJson(w http.ResponseWriter, code int, v any) error {
 	if n, err := w.Write(bs); err != nil {
 		// http.ErrHandlerTimeout has been handled by http.TimeoutHandler,
 		// so it's ignored here.
+		if !errors.Is(err, http.ErrHandlerTimeout) {
+			return fmt.Errorf("write response failed, error: %w", err)
+		}
+	} else if n < len(bs) {
+		return fmt.Errorf("actual bytes: %d, written bytes: %d", len(bs), n)
+	}
+
+	return nil
+}
+
+func doWritePb(w http.ResponseWriter, code int, v ggProto.Message) error {
+	bs, err := ggProto.Marshal(v)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return fmt.Errorf("marshal proto failed, error: %w", err)
+	}
+
+	w.Header().Set(ContentType, header.PbContentType)
+	w.WriteHeader(code)
+
+	if n, err := w.Write(bs); err != nil {
 		if !errors.Is(err, http.ErrHandlerTimeout) {
 			return fmt.Errorf("write response failed, error: %w", err)
 		}

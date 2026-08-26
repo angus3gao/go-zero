@@ -332,3 +332,67 @@ func TestBuildRequestWithBody(t *testing.T) {
 		})
 	}
 }
+
+func TestPost_Ptr(t *testing.T) {
+	type Data struct {
+		Key    string `json:"key"`
+		Value  int    `json:"value"`
+		Header string `json:"X-Header"`
+		Body   string `json:"body"`
+	}
+
+	rt := router.NewRouter()
+	err := rt.Handle(http.MethodPost, "/nodes/:key",
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			var req Data
+			assert.Nil(t, httpx.Parse(r, &req))
+			assert.Equal(t, "foo", req.Key)
+			assert.Equal(t, 10, req.Value)
+			assert.Equal(t, "my-header", req.Header)
+			assert.Equal(t, "my body", req.Body)
+			assert.Equal(t, "cccccc", r.Header.Get("xx-idfv"))
+		}))
+	assert.Nil(t, err)
+
+	svr := httptest.NewServer(http.HandlerFunc(rt.ServeHTTP))
+	defer svr.Close()
+
+	data := &Data{
+		Key:    "foo",
+		Value:  10,
+		Header: "my-header",
+		Body:   "my body",
+	}
+	resp, err := Post(context.Background(), svr.URL+"/nodes/:key", map[string]any{
+		"xx-idfv": "cccccc",
+	}, data)
+	assert.Nil(t, err)
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+}
+
+func TestGet_Ptr(t *testing.T) {
+	type Data struct {
+		Idfv string `json:"idfv"`
+	}
+
+	rt := router.NewRouter()
+	err := rt.Handle(http.MethodGet, "/nodes/key",
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			var req Data
+			assert.Nil(t, httpx.ParseForm(r, &req))
+			assert.Equal(t, "cccccc", r.Header.Get("xx-idfv"))
+			// assert.Equal(t, "TTT", req.Idfv)
+		}))
+	assert.Nil(t, err)
+
+	svr := httptest.NewServer(http.HandlerFunc(rt.ServeHTTP))
+	defer svr.Close()
+
+	resp, err := Get(context.Background(), svr.URL+"/nodes/key", map[string]any{
+		"xx-idfv": "cccccc",
+	}, map[string]any{
+		"idfv": "TTT",
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+}

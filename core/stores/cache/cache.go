@@ -34,6 +34,7 @@ type (
 		SetWithExpire(key string, val any, expire time.Duration) error
 		// SetWithExpireCtx sets the cache with key and v, using given expire.
 		SetWithExpireCtx(ctx context.Context, key string, val any, expire time.Duration) error
+		SetWithDirtyCtx(ctx context.Context, key string, val any) error
 		// Take takes the result from cache first, if not found,
 		// query from DB and set cache using c.expiry, then return the result.
 		Take(val any, key string, query func(val any) error) error
@@ -166,6 +167,15 @@ func (cc cacheCluster) SetWithExpireCtx(ctx context.Context, key string, val any
 	}
 
 	return c.(Cache).SetWithExpireCtx(ctx, key, val, expire)
+}
+
+func (cc cacheCluster) SetWithDirtyCtx(ctx context.Context, key string, val any) error {
+	c, ok := cc.dispatcher.Get(key)
+	if !ok {
+		return cc.errNotFound
+	}
+
+	return c.(Cache).SetWithDirtyCtx(ctx, key, val)
 }
 
 // Take takes the result from cache first, if not found,

@@ -13,6 +13,10 @@ var (
 
 type fieldsKey struct{}
 
+type LogFields struct {
+	LogFields []LogField
+}
+
 // AddGlobalFields adds global fields.
 func AddGlobalFields(fields ...LogField) {
 	globalFieldsLock.Lock()
@@ -44,4 +48,29 @@ func ContextWithFields(ctx context.Context, fields ...LogField) context.Context 
 // deprecated: use ContextWithFields instead.
 func WithFields(ctx context.Context, fields ...LogField) context.Context {
 	return ContextWithFields(ctx, fields...)
+}
+func NewLogFields(logFields ...LogField) *LogFields {
+	fields := LogFields{}
+	fields.LogFields = make([]LogField, 0, len(logFields))
+	fields.LogFields = append(fields.LogFields, logFields...)
+	return &fields
+}
+
+func (lf *LogFields) AddField(logField LogField) {
+	lf.LogFields = append(lf.LogFields, logField)
+}
+
+func (lf *LogFields) GetFields() []LogField {
+	return lf.LogFields
+}
+
+func ParseFields(args ...any) ([]any, *LogFields) {
+	if len(args) > 0 {
+		tail := len(args) - 1
+		if fields, ok := args[tail].(*LogFields); ok {
+			return args[:tail], fields
+		}
+	}
+
+	return args, nil
 }

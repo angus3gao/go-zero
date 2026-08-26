@@ -12,6 +12,7 @@ import (
 	"github.com/zeromicro/go-zero/zrpc/internal/balancer/consistenthash"
 	"github.com/zeromicro/go-zero/zrpc/internal/balancer/p2c"
 	"github.com/zeromicro/go-zero/zrpc/internal/clientinterceptors"
+	"github.com/zeromicro/go-zero/zrpc/internal/codes"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
 )
@@ -38,13 +39,16 @@ type (
 	// Client is an alias of internal.Client.
 	Client = internal.Client
 	// ClientOption is an alias of internal.ClientOption.
-	ClientOption = internal.ClientOption
+	ClientOption  = internal.ClientOption
+	ClientOptions = internal.ClientOptions
 
 	// A RpcClient is a rpc client.
 	RpcClient struct {
 		client Client
 	}
 )
+
+var Acceptable = codes.Acceptable
 
 // MustNewClient returns a Client, exits on any error.
 func MustNewClient(c RpcClientConf, options ...ClientOption) Client {
@@ -76,7 +80,11 @@ func NewClient(c RpcClientConf, options ...ClientOption) (Client, error) {
 		})))
 	}
 
-	svcCfg := makeLBServiceConfig(c.BalancerName)
+	balancerName := c.BalancerName
+	if len(c.Balancer) > 0 {
+		balancerName = c.Balancer
+	}
+	svcCfg := makeLBServiceConfig(balancerName)
 	opts = append(opts, WithDialOption(grpc.WithDefaultServiceConfig(svcCfg)))
 
 	opts = append(opts, options...)

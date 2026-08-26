@@ -95,7 +95,12 @@ func Debug(v ...any) {
 // Debugf writes v with format into access log.
 func Debugf(format string, v ...any) {
 	if shallLog(DebugLevel) {
-		writeDebug(fmt.Sprintf(format, v...))
+		args, fields := ParseFields(v...)
+		if fields == nil {
+			writeDebug(fmt.Sprintf(format, args...))
+		} else {
+			writeDebug(fmt.Sprintf(format, args...), fields.GetFields()...)
+		}
 	}
 }
 
@@ -142,7 +147,12 @@ func Error(v ...any) {
 // Errorf writes v with format into error log.
 func Errorf(format string, v ...any) {
 	if shallLog(ErrorLevel) {
-		writeError(fmt.Errorf(format, v...).Error())
+		args, fields := ParseFields(v...)
+		if fields == nil {
+			writeError(fmt.Errorf(format, args...).Error())
+		} else {
+			writeError(fmt.Errorf(format, args...).Error(), fields.GetFields()...)
+		}
 	}
 }
 
@@ -199,10 +209,21 @@ func Info(v ...any) {
 	}
 }
 
+func Bi(v any) {
+	if shallLog(InfoLevel) {
+		writeBi(v)
+	}
+}
+
 // Infof writes v with format into access log.
 func Infof(format string, v ...any) {
 	if shallLog(InfoLevel) {
-		writeInfo(fmt.Sprintf(format, v...))
+		args, fields := ParseFields(v...)
+		if fields == nil {
+			writeInfo(fmt.Sprintf(format, args...))
+		} else {
+			writeInfo(fmt.Sprintf(format, args...), fields.GetFields()...)
+		}
 	}
 }
 
@@ -337,7 +358,12 @@ func Slow(v ...any) {
 // Slowf writes v with format into slow log.
 func Slowf(format string, v ...any) {
 	if shallLog(ErrorLevel) {
-		writeSlow(fmt.Sprintf(format, v...))
+		args, fields := ParseFields(v...)
+		if fields == nil {
+			writeSlow(fmt.Sprintf(format, args...))
+		} else {
+			writeSlow(fmt.Sprintf(format, args...), fields.GetFields()...)
+		}
 	}
 }
 
@@ -574,6 +600,10 @@ func writeError(val any, fields ...LogField) {
 // The caller should check shallLog before calling this function.
 func writeInfo(val any, fields ...LogField) {
 	getWriter().Info(val, mergeGlobalFields(addCaller(fields...))...)
+}
+
+func writeBi(val any) {
+	getWriter().Bi(val)
 }
 
 // writeSevere writes v into severe log.

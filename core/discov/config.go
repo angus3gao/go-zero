@@ -14,6 +14,7 @@ type EtcdConf struct {
 	Hosts              []string
 	Key                string
 	ID                 int64  `json:",optional"`
+	ServerName         string `json:",optional"`
 	User               string `json:",optional"`
 	Pass               string `json:",optional"`
 	CertFile           string `json:",optional"`

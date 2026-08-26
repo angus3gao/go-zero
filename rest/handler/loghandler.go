@@ -41,7 +41,6 @@ func LogHandler(next http.Handler) http.Handler {
 		timer := utils.NewElapsedTimer()
 		logs := new(internal.LogCollector)
 		lrw := response.NewWithCodeResponseWriter(w)
-
 		var dup io.ReadCloser
 		r.Body, dup = iox.LimitDupReadCloser(r.Body, limitBodyBytes)
 		next.ServeHTTP(lrw, r.WithContext(internal.WithLogCollector(r.Context(), logs)))
@@ -164,7 +163,7 @@ func logBrief(r *http.Request, code int, timer *utils.ElapsedTimer, logs *intern
 	}
 
 	if ok {
-		logger.Info(buf.String())
+		logger.Debug(buf.String())
 	} else {
 		logger.Error(buf.String())
 	}
@@ -195,7 +194,7 @@ func logDetails(r *http.Request, response *detailLoggedResponseWriter, timer *ut
 	}
 
 	if isOkResponse(code) {
-		logger.Info(buf.String())
+		logger.Debug(buf.String())
 	} else {
 		logger.Error(buf.String())
 	}

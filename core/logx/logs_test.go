@@ -60,6 +60,12 @@ func (mw *mockWriter) Info(v any, fields ...LogField) {
 	output(&mw.builder, levelInfo, v, fields...)
 }
 
+func (mw *mockWriter) Bi(v any) {
+	mw.lock.Lock()
+	defer mw.lock.Unlock()
+	writeJson(&mw.builder, v)
+}
+
 func (mw *mockWriter) Severe(v any) {
 	mw.lock.Lock()
 	defer mw.lock.Unlock()

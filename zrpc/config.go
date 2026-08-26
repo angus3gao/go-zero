@@ -22,14 +22,16 @@ type (
 
 	// A RpcClientConf is a rpc client config.
 	RpcClientConf struct {
-		Etcd          discov.EtcdConf `json:",optional,inherit"`
-		Endpoints     []string        `json:",optional"`
-		Target        string          `json:",optional"`
-		App           string          `json:",optional"`
-		Token         string          `json:",optional"`
-		NonBlock      bool            `json:",default=true"`
-		Timeout       int64           `json:",default=2000"`
-		KeepaliveTime time.Duration   `json:",optional"`
+		Etcd      discov.EtcdConf `json:",optional,inherit"`
+		Endpoints []string        `json:",optional"`
+		Target    string          `json:",optional"`
+		App       string          `json:",optional"`
+		Token     string          `json:",optional"`
+		// Balancer is kept for backward compatibility. BalancerName takes effect when Balancer is empty.
+		Balancer      string        `json:",optional"`
+		NonBlock      bool          `json:",optional"`
+		Timeout       int64         `json:",default=5000"`
+		KeepaliveTime time.Duration `json:",optional"`
 		Middlewares   ClientMiddlewaresConf
 		BalancerName  string `json:",default=p2c_ewma"`
 	}
@@ -43,7 +45,7 @@ type (
 		Redis         redis.RedisKeyConf `json:",optional"`
 		StrictControl bool               `json:",optional"`
 		// setting 0 means no timeout
-		Timeout      int64 `json:",default=2000"`
+		Timeout      int64 `json:",default=5000"`
 		CpuThreshold int64 `json:",default=900,range=[0:1000)"`
 		// grpc health check switch
 		Health      bool `json:",default=true"`

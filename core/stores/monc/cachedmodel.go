@@ -268,6 +268,10 @@ func (mm *Model) UpdateOne(ctx context.Context, key string, filter, update any,
 	return res, nil
 }
 
+func (mm *Model) UpdateOneWithCacheDirty(ctx context.Context, key string, filter, update any) error {
+	return mm.cache.SetWithDirtyCtx(ctx, key, update)
+}
+
 // UpdateOneNoCache updates the first document that matches filter with update.
 func (mm *Model) UpdateOneNoCache(ctx context.Context, filter, update any,
 	opts ...options.Lister[options.UpdateOneOptions]) (*mongo.UpdateResult, error) {

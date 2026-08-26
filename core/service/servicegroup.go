@@ -94,6 +94,12 @@ func WithStart(start func()) Service {
 	}
 }
 
+func WithStop(stop func()) Service {
+	return stopOnlyService{
+		stop: stop,
+	}
+}
+
 // WithStarter wraps a Starter as a Service.
 func WithStarter(start Starter) Service {
 	return starterOnlyService{
@@ -120,4 +126,20 @@ func (s stopper) Stop() {
 
 func (s startOnlyService) Start() {
 	s.start()
+}
+
+type (
+	starter struct{}
+
+	stopOnlyService struct {
+		stop func()
+		starter
+	}
+)
+
+func (s starter) Start() {
+}
+
+func (s stopOnlyService) Stop() {
+	s.stop()
 }

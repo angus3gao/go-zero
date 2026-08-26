@@ -17,4 +17,8 @@ const (
 	ContentTypeJson = "application/json; charset=utf-8"
 	// ContentTypeEventStream is the content type for event stream.
 	ContentTypeEventStream = "text/event-stream"
+	// JsonContentType is kept for backward compatibility.
+	JsonContentType = ContentTypeJson
+	// PbContentType is the content type for protobuf.
+	PbContentType = "application/pb; charset=utf-8"
 )

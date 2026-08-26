@@ -22,7 +22,7 @@ func LogInterceptor(r *http.Request) (*http.Request, ResponseHandler) {
 		ctx := tc.Extract(r.Context(), propagation.HeaderCarrier(resp.Header))
 		logger := logx.WithContext(ctx).WithDuration(duration)
 		if isOkResponse(resp.StatusCode) {
-			logger.Infof("[HTTP] %d - %s %s", resp.StatusCode, r.Method, r.URL)
+			logger.Debugf("[HTTP] %d - %s %s", resp.StatusCode, r.Method, r.URL)
 		} else {
 			logger.Errorf("[HTTP] %d - %s %s", resp.StatusCode, r.Method, r.URL)
 		}
